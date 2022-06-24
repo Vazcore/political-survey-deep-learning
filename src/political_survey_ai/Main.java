@@ -33,7 +33,7 @@ public class Main {
 		
 		// start survey (it's also a training session)
 		gui.startSurvey(
-			5,
+			10,
 			questions,
 			historyTestData,
 			modelDataPath,
