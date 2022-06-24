@@ -17,6 +17,10 @@ public class ModelChoice {
 	public int getChoiceIndex() {
 		return choiceIndex;
 	}
+	
+	public HashMap<String, PartyAffiliation> getPartyAffiliations() {
+		return this.partyAffiliations;
+	}
 
 	public PartyAffiliation getProbabilityBypartyIndex(String partyIndex) {
 		return partyAffiliations.get(partyIndex);
@@ -28,6 +32,7 @@ public class ModelChoice {
 			partyAffiliation = this.partyAffiliations.get(partyIndex);
 		} else {
 			partyAffiliation = new PartyAffiliation();
+			partyAffiliation.setPartyIndex(Integer.parseInt(partyIndex));
 			this.partyAffiliations.put(partyIndex, partyAffiliation);
 		}
 		partyAffiliation.setTimesWasUsed(partyAffiliation.getTimesWasUsed() + 1);
@@ -63,6 +68,16 @@ public class ModelChoice {
 		res += String.join(",", parties);
 		
 		return res;
+	}
+	
+	public void readFromText(String choiceData) {
+		String[] affiliationsData = choiceData.split(",");
+		for (int i = 0; i < affiliationsData.length; i++) {
+			PartyAffiliation affiliation = new PartyAffiliation();
+			String[] values = affiliationsData[i].split("-");
+			affiliation.readFromText(values);
+			this.partyAffiliations.put(values[0], affiliation);
+		}
 	}
 	
 }

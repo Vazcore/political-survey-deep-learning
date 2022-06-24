@@ -58,4 +58,15 @@ public class ModelQuestion {
 		
 		return res;
 	}
+	
+	public void readFromText(String[] parts) {
+		for (int i = 1; i < parts.length; i++) {			
+			String[] choiceData = parts[i].split(":");
+			String choiceIndex = choiceData[0];
+			ModelChoice modelChoice = new ModelChoice(choiceIndex);
+			modelChoice.readFromText(choiceData[1]);
+			
+			this.choices.put(choiceIndex, modelChoice);
+		}
+	}
 }

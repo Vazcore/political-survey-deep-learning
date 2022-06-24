@@ -3,6 +3,7 @@ package political_survey_ai;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -20,6 +21,10 @@ public class TrainingSet {
 		this.modelDataPath = modelDataPath;
 	}
 	
+	public String getModelDataPath() {
+		return modelDataPath;
+	}
+
 	public void add(TrainingQuestion q) {
 		this.questions.add(q);
 	}
@@ -50,15 +55,23 @@ public class TrainingSet {
 			res += tq.getQuestion() + "," + tq.getAnswer();
 		}
 		
+		this.write(this.testDataPath, res, true);
+	}
+	
+	private void write(String path, String data, boolean isAppend) {
 		try {
-			File file = new File(this.testDataPath);
+			File file = new File(path);
 			if (!file.exists()) {
 				file.createNewFile();
 			}
-			FileWriter fw = new FileWriter(file, true);
+			FileWriter fw = new FileWriter(file, isAppend == true);
 			BufferedWriter writer = new BufferedWriter(fw);
-			writer.write(res);
-			writer.newLine();
+			writer.write(data);
+			
+			if (isAppend) {
+				writer.newLine();
+			}
+			
 			writer.close();
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -86,9 +99,15 @@ public class TrainingSet {
 			reader.close();
 			
 			String data = model.getPrintableData();
-			System.out.println(data);
+			this.write(this.modelDataPath, data, false);
+			
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	public void readTrainingModel() {
+		TrainingModel model = new TrainingModel();
+		model.readFromFile(this.modelDataPath);
 	}
 }

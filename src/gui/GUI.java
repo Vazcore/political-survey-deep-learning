@@ -24,7 +24,9 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.ButtonGroup;
 import javax.swing.JTextArea;
 
+import political_survey_ai.PartyAffiliation;
 import political_survey_ai.Question;
+import political_survey_ai.TrainingModel;
 import political_survey_ai.TrainingQuestion;
 import political_survey_ai.TrainingSet;
 
@@ -43,16 +45,21 @@ public class GUI {
 		String testDataPath,
 		String modelDataPath,
 		String[] parties,
-		Question lastQuestion
+		Question lastQuestion,
+		boolean isTraining,
+		TrainingModel model
 	) {
 		ArrayList<Question> randomQuestions = getRandomQuestions(numOfQuestions, questions);
-		randomQuestions.add(lastQuestion);
+		TrainingSet trainingSet = null;
+
+		if (isTraining) {
+			randomQuestions.add(lastQuestion);
+			trainingSet = new TrainingSet(testDataPath, modelDataPath);
+		}		
 		
 		Iterator<Question> iter = randomQuestions.iterator();
 		
-		TrainingSet trainingSet = new TrainingSet(testDataPath, modelDataPath);
-		
-		displayPanel(iter, questions, trainingSet);
+		displayPanel(iter, questions, trainingSet, model, parties);
 	}
 	
 	private ArrayList<Question> getRandomQuestions(int numOfQuestions, ArrayList<Question> questions) {
@@ -72,16 +79,23 @@ public class GUI {
 	private void displayPanel(
 		Iterator<Question> iter,
 		ArrayList<Question> questions,
-		TrainingSet trainingSet
+		TrainingSet trainingSet,
+		TrainingModel model,
+		String[] parties
 	) {
 		if (!iter.hasNext()) {
 			System.out.println("Last Question!!!");
-			ArrayList<TrainingQuestion> trainingQuestions = trainingSet.getQuestions();
-			String party = trainingQuestions.get(trainingQuestions.size() - 1).getAnswer();
-			trainingSet.setParty(party);
-			trainingSet.writeHistory();
-			trainingSet.trainModel();
-			return;
+			if (trainingSet != null) {
+				ArrayList<TrainingQuestion> trainingQuestions = trainingSet.getQuestions();
+				String party = trainingQuestions.get(trainingQuestions.size() - 1).getAnswer();
+				trainingSet.setParty(party);
+				trainingSet.writeHistory();
+				trainingSet.trainModel();
+				return;
+			} else {
+				showResultPanel(parties[model.getProbablePartyIndex()]);
+				return;
+			}
 		}
 		
 		Question question = iter.next();
@@ -138,17 +152,54 @@ public class GUI {
 				if (currentChoices.size() != 0) {
 					aBtn.setEnabled(false);
 					String choice = currentChoices.get(currentChoices.size() - 1);
-					TrainingQuestion tQuestion = new TrainingQuestion(question.getId() + "", choice);
-					trainingSet.add(tQuestion);
 					
 					clearFrame(frame, panel, aBtn, this, choiceBtns, onCheckChoice);
 					
-					displayPanel(iter, questions, trainingSet);
+					if (model != null) {
+						PartyAffiliation probableParty = model.addProbabilitiesToStatistic(
+							model.getAffiliationsByQuestionAndChoice("" + question.getId(), choice)
+						);
+						
+						if (probableParty != null && probableParty.getProbability() >= 1.0) {
+							showResultPanel(parties[probableParty.getPartyIndex()]);
+						}
+					} else {
+						TrainingQuestion tQuestion = new TrainingQuestion(question.getId() + "", choice);
+						trainingSet.add(tQuestion);
+					}
+					
+					
+					displayPanel(iter, questions, trainingSet, model, parties);
 				}
 			}
 		};
 		nextBtn.addActionListener(onNextQuestion);
 		
+	}
+	
+	private void showResultPanel(String resulPartyName) {
+		int width = 850;
+		JFrame frame = new JFrame();
+		JPanel panel = new JPanel();
+		
+		BoxLayout boxlayout = new BoxLayout(panel, BoxLayout.Y_AXIS);
+		panel.setLayout(boxlayout);	
+		panel.setBorder(new EmptyBorder(new Insets(30, 30, 30, 30)));	
+		
+		
+		ImageIcon icon = new ImageIcon(GUI.class.getResource("logo.png"));
+		frame.setIconImage(icon.getImage());
+		
+		JLabel label = new JLabel("Your favourite party is " + resulPartyName);
+		panel.add(label, BorderLayout.CENTER);
+		
+		frame.add(panel);		
+		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		frame.setTitle("Results");
+		frame.setSize(width, 400);
+		//frame.pack();
+		frame.setLocationRelativeTo(null);
+		frame.setVisible(true);
 	}
 	
 	private void clearFrame(
