@@ -35,8 +35,12 @@ import javax.swing.JButton;
 
 
 public class GUI {
+	private boolean isFinished = false;
+	private JFrame frame = null;
+	private JPanel panel = null;
+	
 	public GUI() {
-		
+		this.isFinished = false;
 	}
 	
 	public void startSurvey(
@@ -48,17 +52,21 @@ public class GUI {
 		Question lastQuestion,
 		boolean isTraining,
 		TrainingModel model
-	) {
+	) {		
 		ArrayList<Question> randomQuestions = getRandomQuestions(numOfQuestions, questions);
 		TrainingSet trainingSet = null;
-
+		
+		// if it is a training session - add last question (to check the party)
 		if (isTraining) {
 			randomQuestions.add(lastQuestion);
+			// initialize a training set
 			trainingSet = new TrainingSet(testDataPath, modelDataPath);
 		}		
 		
+		// iterate over a list of questions
 		Iterator<Question> iter = randomQuestions.iterator();
 		
+		// display first question
 		displayPanel(iter, questions, trainingSet, model, parties);
 	}
 	
@@ -84,18 +92,25 @@ public class GUI {
 		String[] parties
 	) {
 		if (!iter.hasNext()) {
+			this.isFinished = true;
 			System.out.println("Last Question!!!");
 			if (trainingSet != null) {
 				ArrayList<TrainingQuestion> trainingQuestions = trainingSet.getQuestions();
 				String party = trainingQuestions.get(trainingQuestions.size() - 1).getAnswer();
 				trainingSet.setParty(party);
 				trainingSet.writeHistory();
+				// train model if it is a training session
 				trainingSet.trainModel();
 				return;
 			} else {
+				// guess a party if it's a last slide
 				showResultPanel(parties[model.getProbablePartyIndex()]);
 				return;
 			}
+		}
+		
+		if (this.isFinished) {
+			return;
 		}
 		
 		Question question = iter.next();
@@ -160,15 +175,19 @@ public class GUI {
 							model.getAffiliationsByQuestionAndChoice("" + question.getId(), choice)
 						);
 						
+						// if probability is more than 1 (100%) - guess a party and show a result page
 						if (probableParty != null && probableParty.getProbability() >= 1.0) {
 							showResultPanel(parties[probableParty.getPartyIndex()]);
+							clearFrame(frame, panel, aBtn, this, choiceBtns, onCheckChoice);
+							return;
 						}
 					} else {
+						// add a question and answer into the training set
 						TrainingQuestion tQuestion = new TrainingQuestion(question.getId() + "", choice);
 						trainingSet.add(tQuestion);
 					}
 					
-					
+					// display next question
 					displayPanel(iter, questions, trainingSet, model, parties);
 				}
 			}
